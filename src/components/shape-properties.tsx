@@ -39,7 +39,7 @@ export const ShapeProperties: React.FC<ShapePropertiesProps> = ({
                     <option value="circle">Circle</option>
                     <option value="rectangle">Rectangle</option>
                     <option value="line">Line</option>
-                    <option value="brush">Brush</option>
+                    {/* <option value="brush">Brush</option> */}
                 </select>
             </div>
             <div>

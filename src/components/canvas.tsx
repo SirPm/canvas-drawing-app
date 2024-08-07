@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import { ShapeProperties, TShapeProperty } from "./shape-properties";
+import { useWebSockets } from "@/hooks/useWebSockets";
 
 export interface Shape {
     type: TShapeProperty;
@@ -33,6 +34,8 @@ export const generateUniqueId = (): string => {
 };
 
 export const Canvas = () => {
+    const { shapes: shapesFromWebSocket, saveShapeData } =
+        useWebSockets("/api/socket");
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [shapes, setShapes] = useState<Shape[]>([]);
     const [currentShape, setCurrentShape] = useState<Shape | null>(null);
@@ -105,25 +108,6 @@ export const Canvas = () => {
                 return false;
         }
     };
-
-    //   useEffect(() => {
-    //     const savedShapes = localStorage.getItem('shapes');
-    //     if (savedShapes) {
-    //       setShapes(JSON.parse(savedShapes));
-    //     }
-    //   }, []);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        shapes.forEach((shape) =>
-            drawShape(ctx, shape, shape.id === selectedShapeId)
-        );
-    }, [shapes, selectedShapeId]);
 
     const drawShape = (
         ctx: CanvasRenderingContext2D,
@@ -268,40 +252,6 @@ export const Canvas = () => {
         }
     };
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-        const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        let shapeClicked = false;
-        for (let i = shapes.length - 1; i >= 0; i--) {
-            if (isPointInShape(x, y, shapes[i])) {
-                setSelectedShapeId(shapes[i].id);
-                shapeClicked = true;
-                return;
-            }
-        }
-
-        if (!shapeClicked) {
-            const newShape: Shape = {
-                type: properties.type,
-                x,
-                y,
-                strokeColor: properties.strokeColor,
-                size: properties.size,
-                fillColor: properties.fillColor,
-                ...(properties.type !== "brush" && { endX: x, endY: y }),
-                ...(properties.type === "brush" && { points: [{ x, y }] }),
-                id: generateUniqueId(),
-            };
-
-            setCurrentShape(newShape);
-            setIsDrawing(true);
-            setShapes([...shapes, newShape]);
-            setSelectedShapeId("");
-        }
-    };
-
     const deleteSelectedShape = () => {
         if (selectedShapeId) {
             const updatedShapes = shapes.filter(
@@ -343,39 +293,109 @@ export const Canvas = () => {
         }
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDrawing || !currentShape) return;
-
+    const handleMouseDown = (e: React.MouseEvent) => {
         const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-
+    
+        if (properties.type !== "brush") {
+            let shapeClicked = false;
+            for (let i = shapes.length - 1; i >= 0; i--) {
+                if (isPointInShape(x, y, shapes[i])) {
+                    setSelectedShapeId(shapes[i].id);
+                    shapeClicked = true;
+                    return;
+                }
+            }
+    
+            if (!shapeClicked) {
+                setSelectedShapeId("");
+            }
+        }
+    
+        const newShape: Shape = {
+            type: properties.type,
+            x,
+            y,
+            strokeColor: properties.strokeColor,
+            size: properties.size,
+            fillColor: properties.fillColor,
+            ...(properties.type !== "brush" && { endX: x, endY: y }),
+            ...(properties.type === "brush" && { points: [{ x, y }] }),
+            id: generateUniqueId(),
+        };
+    
+        setCurrentShape(newShape);
+        setIsDrawing(true);
+        if (properties.type !== "brush") {
+            setShapes((prevShapes) => [...prevShapes, newShape]);
+        } else {
+            setShapes((prevShapes) => [...prevShapes.slice(0, -1), newShape]);
+        }
+    };
+    
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDrawing || !currentShape) return;
+    
+        const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+    
         if (
             currentShape.type === "line" ||
             currentShape.type === "circle" ||
             currentShape.type === "rectangle"
         ) {
             const updatedShape = { ...currentShape, endX: x, endY: y };
-            setShapes([...shapes.slice(0, -1), updatedShape]);
+            setShapes((prevShapes) => [...prevShapes.slice(0, -1), updatedShape]);
             setCurrentShape(updatedShape);
         } else if (currentShape.type === "brush" && currentShape.points) {
             const updatedShape = {
                 ...currentShape,
                 points: [...currentShape.points, { x, y }],
             };
-            setShapes([...shapes.slice(0, -1), updatedShape]);
+            setShapes((prevShapes) => [...prevShapes.slice(0, -1), updatedShape]);
             setCurrentShape(updatedShape);
         }
     };
-
+    
     const handleMouseUp = () => {
+        if (isDrawing && currentShape) {
+            setShapes((prevShapes) => [...prevShapes.slice(0, -1), currentShape]);
+            saveShapeData(currentShape);
+        }
         setIsDrawing(false);
         setCurrentShape(null);
+    };
+    
+
+    const clearCanvas = () => {
+        setShapes([]);
+        localStorage.removeItem("shapes");
     };
 
     //   useEffect(() => {
     //     localStorage.setItem('shapes', JSON.stringify(shapes));
     //   }, [shapes]);
+
+    //   useEffect(() => {
+    //     const savedShapes = localStorage.getItem('shapes');
+    //     if (savedShapes) {
+    //       setShapes(JSON.parse(savedShapes));
+    //     }
+    //   }, []);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        shapes.forEach((shape) =>
+            drawShape(ctx, shape, shape.id === selectedShapeId)
+        );
+    }, [shapes, selectedShapeId]);
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -396,11 +416,6 @@ export const Canvas = () => {
 
         return () => clearInterval(intervalId);
     }, [shapes]);
-
-    const clearCanvas = () => {
-        setShapes([]);
-        localStorage.removeItem("shapes");
-    };
 
     return (
         <div>
