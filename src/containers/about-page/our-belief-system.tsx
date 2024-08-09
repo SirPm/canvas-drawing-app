@@ -58,7 +58,7 @@ export const OutBeliefSystem = () => {
 
 const Wrapper = styled.div`
 	background-color: #f2f2f2;
-    padding: 80px 0;
+	padding: 80px 0;
 `;
 
 const Content = styled.div``;
@@ -66,18 +66,22 @@ const Content = styled.div``;
 const Title = styled.h3`
 	font-size: 30px;
 	font-weight: 600;
-    text-align: center;
+	text-align: center;
 `;
 
 const BeliefsWrapper = styled.div`
 	margin: 50px 0;
 	display: flex;
-    flex-wrap: wrap;
+	flex-wrap: wrap;
 	justify-content: center;
 
-    > div:first-child {
-        margin-right: 30px;
-    }
+	> div:first-child {
+		margin-right: 30px;
+	}
+
+	@media screen and (max-width: 768px) {
+		flex-direction: column;
+	}
 `;
 
 const Belief = styled.div`
@@ -85,12 +89,17 @@ const Belief = styled.div`
 	border-radius: 20px;
 	padding: 20px;
 	width: 38%;
-    height: 400px;
-    margin-bottom: 40px;
+	height: 400px;
+	margin-bottom: 40px;
 
-    &:last-child {
-        margin-bottom: 0;
-    }
+	&:last-child {
+		margin-bottom: 0;
+	}
+
+	@media screen and (max-width: 768px) {
+		width: 100%;
+		height: fit-content;
+	}
 `;
 
 const BeliefImageWrapper = styled.div`
@@ -112,12 +121,12 @@ const BeliefImage = styled.div`
 const BeliefTitle = styled.h4`
 	font-weight: 600;
 	font-siz3e: 25px;
-    text-align: center;
-    margin-top: 20px;
+	text-align: center;
+	margin-top: 20px;
 `;
 
 const BeliefText = styled.p`
 	margin-top: 15px;
-    text-align: center;
-    width: 70%l
+	text-align: center;
+	width: 70%l;
 `;

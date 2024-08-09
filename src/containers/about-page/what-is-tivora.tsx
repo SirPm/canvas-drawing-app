@@ -61,10 +61,18 @@ const Content = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+
+    @media screen and (max-width: 768px) {
+        flex-direction: column;
+    }
 `;
 
 const TextWrapper = styled.div`
 	width: 60%;
+
+    @media screen and (max-width: 768px) {
+       width: 100%;
+    }
 `;
 
 const ImageWrapper = styled.div`

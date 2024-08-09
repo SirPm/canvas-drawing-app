@@ -144,4 +144,8 @@ const OtherActionsWrapper = styled.div`
 	img:first-child {
 		margin-right: 10px;
 	}
+
+	@media screen and (max-width: 768px) {
+		margin-top: 20px;
+	}
 `;
